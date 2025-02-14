@@ -28,8 +28,9 @@ class RewardsTracker:
         if not self.address:
             raise ValueError("Algorand address not found in environment variables")
         
-        self.algod_url = "http://localhost:8080"
-        self.indexer_url = "http://localhost:8980"
+        # Use public Algorand nodes
+        self.algod_url = "https://mainnet-api.algonode.cloud"
+        self.indexer_url = "https://mainnet-idx.algonode.cloud"
         
     def fetch_account_info(self) -> Dict[str, Any]:
         """Fetch account information from local node"""
