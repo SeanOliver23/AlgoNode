@@ -21,14 +21,14 @@ on rewards_history(address, timestamp);
 -- Enable Row Level Security
 alter table rewards_history enable row level security;
 
--- Create policy to allow inserts from authenticated users
-create policy "Enable insert for authenticated users only"
-on rewards_history for insert
-to authenticated
-with check (true);
+-- Drop existing policies
+drop policy if exists "Enable insert for authenticated users only" on rewards_history;
+drop policy if exists "Enable insert for service role" on rewards_history;
+drop policy if exists "Enable select for all users" on rewards_history;
 
--- Create policy to allow select for all users
-create policy "Enable select for all users"
-on rewards_history for select
-to anon
-using (true); 
+-- Create a single policy to allow all operations (for testing)
+create policy "Allow all operations"
+on rewards_history
+for all
+using (true)
+with check (true); 
