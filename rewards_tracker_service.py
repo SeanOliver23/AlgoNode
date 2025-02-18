@@ -1,10 +1,14 @@
 import os
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 import requests
 from supabase import create_client, Client
+from dotenv import load_dotenv
+from algo_rewards import AlgorandRewardsTracker
+import time
+import schedule
 
 # Configure logging
 logging.basicConfig(
@@ -13,31 +17,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
+
 class RewardsTracker:
     def __init__(self):
-        # Initialize Supabase client
         supabase_url = os.getenv('SUPABASE_URL')
         supabase_key = os.getenv('SUPABASE_KEY')
+        
         if not supabase_url or not supabase_key:
-            raise ValueError("Supabase credentials not found in environment variables")
+            raise ValueError("Missing Supabase credentials")
+            
+        try:
+            self.supabase = create_client(supabase_url, supabase_key)
+            logger.info("Supabase client initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            raise
+            
+        self.address = os.getenv('ALGO_ADDRESS', "KK4KTUPTKX3YNA5G2HMYO4CD63F6MTKXDJLIOJ5RRT7TRQK6HC25NUGZTY")
+        self.start_date = datetime(2025, 2, 15)
+        self.original_balance = 145726.37
+        self.tracker = AlgorandRewardsTracker(self.address, self.start_date)
         
-        self.supabase: Client = create_client(supabase_url, supabase_key)
-        
-        # Get Algorand address
-        self.address = os.getenv('ALGO_ADDRESS')
-        if not self.address:
-            raise ValueError("Algorand address not found in environment variables")
-        
-        # Use public Algorand nodes
-        self.algod_url = "https://mainnet-api.algonode.cloud"
-        self.indexer_url = "https://mainnet-idx.algonode.cloud"
+        # Use your local node
+        self.algod_url = "http://157.90.13.230:8080"
+        self.indexer_url = "http://157.90.13.230:8980"
+        self.headers = {
+            "X-Algo-API-Token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
         
     def fetch_account_info(self) -> Dict[str, Any]:
         """Fetch account information from local node"""
         try:
             response = requests.get(
                 f"{self.algod_url}/v2/accounts/{self.address}",
-                headers={"X-Algo-API-Token": ""}
+                headers=self.headers
             )
             response.raise_for_status()
             return response.json()
@@ -51,7 +66,7 @@ class RewardsTracker:
             # Get node status
             status_response = requests.get(
                 f"{self.algod_url}/v2/status",
-                headers={"X-Algo-API-Token": ""}
+                headers=self.headers
             )
             status_response.raise_for_status()
             status_data = status_response.json()

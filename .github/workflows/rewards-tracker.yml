@@ -27,10 +27,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install --no-cache-dir -r requirements.txt
+          pip list  # List installed packages for debugging
 
       - name: Run rewards tracker
         run: |
+          python -c "import supabase; print(f'Supabase version: {supabase.__version__}')"  # Debug version
           python rewards_tracker_service.py
         env:
           PYTHONUNBUFFERED: 1  # Enable real-time logging 
