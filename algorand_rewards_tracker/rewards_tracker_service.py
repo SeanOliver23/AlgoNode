@@ -44,12 +44,10 @@ class RewardsTracker:
         self.original_balance = 145726.37
         self.tracker = AlgorandRewardsTracker(self.address, self.start_date)
         
-        # Use your local node
-        self.algod_url = "http://157.90.13.230:8080"
-        self.indexer_url = "http://157.90.13.230:8980"
-        self.headers = {
-            "X-Algo-API-Token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        }
+        # Use AlgoNode public API URLs
+        self.algod_url = "https://mainnet-api.algonode.cloud"
+        self.indexer_url = "https://mainnet-idx.algonode.cloud"
+        self.headers = {}
         
     def fetch_account_info(self) -> Dict[str, Any]:
         """Fetch account information from local node"""
