@@ -31,6 +31,6 @@ jobs:
 
       - name: Run rewards tracker
         run: |
-          python rewards_service.py
+          python rewards_tracker_service.py
         env:
           PYTHONUNBUFFERED: 1  # Enable real-time logging 
