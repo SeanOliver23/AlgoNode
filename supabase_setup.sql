@@ -1,34 +1,108 @@
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS rewards_history CASCADE;
+DROP TABLE IF EXISTS rewards CASCADE;
+DROP TABLE IF EXISTS node_status CASCADE;
+DROP VIEW IF EXISTS daily_rewards;
+
 -- Create rewards history table
-create table if not exists rewards_history (
-    id bigint primary key generated always as identity,
-    timestamp timestamptz not null,
-    address text not null,
-    rewards numeric not null,
-    rewards_base bigint not null,
-    amount numeric not null,
-    cumulative_rewards numeric not null,
-    is_online boolean not null,
-    current_round bigint not null,
-    pending_rewards numeric not null,
-    participation_active boolean not null,
-    created_at timestamptz default now()
+CREATE TABLE rewards_history (
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    timestamp timestamptz NOT NULL,
+    address text NOT NULL,
+    rewards numeric NOT NULL,
+    rewards_base bigint NOT NULL,
+    amount numeric NOT NULL,
+    cumulative_rewards numeric NOT NULL,
+    is_online boolean NOT NULL,
+    current_round bigint NOT NULL,
+    pending_rewards numeric NOT NULL,
+    participation_active boolean NOT NULL,
+    created_at timestamptz DEFAULT now()
 );
 
--- Create index for faster queries
-create index if not exists rewards_history_address_timestamp_idx 
-on rewards_history(address, timestamp);
+-- Create rewards table
+CREATE TABLE rewards (
+    id BIGSERIAL PRIMARY KEY,
+    address TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    round BIGINT NOT NULL,
+    amount DECIMAL(20, 6) NOT NULL,
+    tx_id TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create node_status table
+CREATE TABLE node_status (
+    id BIGSERIAL PRIMARY KEY,
+    address TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    current_balance DECIMAL(20, 6) NOT NULL,
+    is_online BOOLEAN NOT NULL,
+    current_round BIGINT NOT NULL,
+    participation_key_present BOOLEAN NOT NULL,
+    time_remaining TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes
+CREATE INDEX idx_rewards_history_address_timestamp ON rewards_history(address, timestamp);
+CREATE INDEX idx_rewards_address ON rewards(address);
+CREATE INDEX idx_rewards_timestamp ON rewards(timestamp);
+CREATE INDEX idx_rewards_tx_id ON rewards(tx_id);
+CREATE INDEX idx_node_status_address ON node_status(address);
+CREATE INDEX idx_node_status_timestamp ON node_status(timestamp);
+
+-- Create view for daily rewards
+CREATE VIEW daily_rewards AS
+SELECT 
+    address,
+    DATE_TRUNC('day', timestamp) as date,
+    COUNT(*) as num_rewards,
+    SUM(amount) as total_rewards,
+    AVG(amount) as avg_reward
+FROM rewards
+GROUP BY address, DATE_TRUNC('day', timestamp)
+ORDER BY date DESC;
 
 -- Enable Row Level Security
-alter table rewards_history enable row level security;
+ALTER TABLE rewards_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE node_status ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies
-drop policy if exists "Enable insert for authenticated users only" on rewards_history;
-drop policy if exists "Enable insert for service role" on rewards_history;
-drop policy if exists "Enable select for all users" on rewards_history;
+DO $$ 
+BEGIN
+    -- Drop policies for rewards_history
+    DROP POLICY IF EXISTS "Allow all operations" ON rewards_history;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON rewards_history;
+    DROP POLICY IF EXISTS "Enable select for all users" ON rewards_history;
+    
+    -- Drop policies for rewards
+    DROP POLICY IF EXISTS "Allow all operations" ON rewards;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON rewards;
+    DROP POLICY IF EXISTS "Enable select for all users" ON rewards;
+    
+    -- Drop policies for node_status
+    DROP POLICY IF EXISTS "Allow all operations" ON node_status;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON node_status;
+    DROP POLICY IF EXISTS "Enable select for all users" ON node_status;
+EXCEPTION
+    WHEN undefined_object THEN
+        NULL;
+END $$;
 
--- Create a single policy to allow all operations (for testing)
-create policy "Allow all operations"
-on rewards_history
-for all
-using (true)
-with check (true); 
+-- Create new policies
+CREATE POLICY "Allow all operations on rewards_history"
+ON rewards_history FOR ALL
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on rewards"
+ON rewards FOR ALL
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on node_status"
+ON node_status FOR ALL
+USING (true)
+WITH CHECK (true); 

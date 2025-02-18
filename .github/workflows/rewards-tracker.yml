@@ -33,6 +33,6 @@ jobs:
       - name: Run rewards tracker
         run: |
           python -c "import supabase; print(f'Supabase version: {supabase.__version__}')"  # Debug version
-          python rewards_tracker_service.py
+          python algorand_rewards_tracker/rewards_tracker_service.py
         env:
           PYTHONUNBUFFERED: 1  # Enable real-time logging 
