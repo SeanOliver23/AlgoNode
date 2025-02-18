@@ -29,7 +29,11 @@ class RewardsTracker:
             raise ValueError("Missing Supabase credentials")
             
         try:
-            self.supabase = create_client(supabase_url, supabase_key)
+            # Initialize Supabase client with options
+            self.supabase = create_client(
+                supabase_url=supabase_url,
+                supabase_key=supabase_key
+            )
             logger.info("Supabase client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Supabase client: {e}")
